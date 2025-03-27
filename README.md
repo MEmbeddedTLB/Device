@@ -30,17 +30,17 @@ Device is a versatile WiFi-enabled device communication library designed to simp
 Add to your `platformio.ini`:
 ```ini
 lib_deps = 
-    DeviceConnectivity
+    Device
 ```
 
 ## Basic Usage
 
 ### Initialization
 ```cpp
-#include <Device.h>
+#include <.h>
 
 // Create device with unique ID
-Device myDevice("DEVICE_001");
+Device myDevice("ID");
 
 void setup() {
     // Connect to WiFi
@@ -65,6 +65,7 @@ void loop() {
 
 ### Data Transmission
 - `sendData(type, name, component, status)`: Send device data
+- `sendData(type, name, component, status, string)`: Send device data
 - `sendData(type, name, component, status, dataArray)`: Send data with additional array
 
 ### Command Management
@@ -72,11 +73,29 @@ void loop() {
 - `getPendingCommands()`: Access list of pending commands
 
 ## Configuration
+**Important Note**: Device configuration and code generation are managed through our web platform 
+
+### Code Generation Workflow
+
+1. Visit our web platform
+2. Configure your device specifications
+3. Select desired data components
+4. Generate custom device communication code
+5. Download and upload to your device
+
+### Web Platform Features
+
+- Drag-and-drop component selection
+- Real-time code preview
+- Automatic library configuration
+- Device ID management
+- Endpoint configuration
+
 
 ### Server Configuration
 Modify the following in the constructor:
 ```cpp
-Device myDevice("DEVICE_001");
+Device myDevice("ID");
 ```
 
 ## Error Handling
