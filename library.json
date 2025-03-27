@@ -1,0 +1,56 @@
+{
+    "name": "Device",
+    "version": "1.0.0",
+    "description": "A versatile WiFi device connectivity library for Arduino, ESP, and STM32 boards",
+    "keywords": [
+        "wifi",
+        "iot",
+        "connectivity",
+        "http",
+        "device",
+        "communication",
+        "esp8266",
+        "esp32",
+        "arduino",
+        "stm32"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/MEmbeddedTLB/Device.git"
+    },
+    "authors": [
+        {
+            "name": "MEmbedded TechLab",
+            "email": "membeddedtechlab@gmail.com",
+            "maintainer": true
+        }
+    ],
+    "license": "MIT",
+    "frameworks": [
+        "arduino",
+        "esp8266",
+        "esp32",
+        "stm32cube"
+    ],
+    "platforms": [
+        "atmelavr",
+        "atmelsam",
+        "espressif8266",
+        "espressif32",
+        "stm32"
+    ],
+    "dependencies": {
+        "bblanchon/ArduinoJson": "^6.19.0",
+        "esp8266/ESP8266WiFi": "^1.0.0",
+        "espressif/esp32": "^2.0.0"
+    },
+    "export": {
+        "include": [
+            "src/*.h",
+            "src/*.cpp",
+            "keywords.txt",
+            "library.properties",
+            "LICENSE"
+        ]
+    }
+}
