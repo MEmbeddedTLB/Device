@@ -1,4 +1,4 @@
-#include "Device.h"
+#include "device_arduino.h"
 
 // Constructor
 Device::Device(char* devId) {

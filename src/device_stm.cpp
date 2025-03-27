@@ -1,4 +1,4 @@
-#include "Device.h"
+#include "device_stm.h"
 
 // Constructor
 Device::Device(const char* devId) {

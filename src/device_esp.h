@@ -1,5 +1,5 @@
-#ifndef DEVICE_H
-#define DEVICE_H
+#ifndef DEVICE_ESP_H
+#define DEVICE_ESP_H
 
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -58,4 +58,4 @@ public:
     
 };
 
-#endif // DEVICE_H
+#endif // DEVICE_ESP_H

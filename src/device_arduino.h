@@ -1,5 +1,5 @@
-#ifndef DEVICE_H
-#define DEVICE_H
+#ifndef DEVICE_ARDUINO_H
+#define DEVICE_ARDUINO_H
 
 #include <WiFi101.h>  
 #include <WifiClient.h>
@@ -56,4 +56,4 @@ public:
     std::vector<Command>& getPendingCommands();
 };
 
-#endif // DEVICE_H
+#endif // DEVICE_ARDUINO_H

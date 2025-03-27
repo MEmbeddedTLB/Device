@@ -1,5 +1,5 @@
-#ifndef DEVICE_H
-#define DEVICE_H
+#ifndef DEVICE_STM_H
+#define DEVICE_STM_H
 
 #include "stm32_hal.h"
 #include <ESP8266WiFi.h>
@@ -59,4 +59,4 @@ public:
     std::vector<Command>& getPendingCommands();
 };
 
-#endif // DEVICE_H
+#endif // DEVICE_STM_H

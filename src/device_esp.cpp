@@ -1,4 +1,4 @@
-#include "device.h"
+#include "device_esp.h"
 
 // Constructor
 Device::Device(char* devId) 
