@@ -1,61 +1,56 @@
-#ifndef DEVICE_ESP_H
-#define DEVICE_ESP_H
+// FILE: src/device_esp32.h
+#ifndef DEVICE_ESP32_H
+#define DEVICE_ESP32_H
 
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <vector>
+#include "device.h" // Include base class
 
-struct Command {
-    String name;
-    int status;
-};
-
-class Device {
+class DeviceESP32 : public DeviceBase {
 private:
     // Server details
     String server_url;
-    String deviceId;  
-
+    String deviceId;
+    
     // API endpoints
     String connect_endpoint;
     String commands_endpoint;
     String data_endpoint;
-
+    
     DynamicJsonDocument doc;
     String output;
     HTTPClient httpClient;
     bool isConnected = false;
-
+    
     // Vector to store pending commands
     std::vector<Command> pendingCommands;
 
 public:
     // Constructor
-    Device(char* devId);
-
-    // Destructor to free dynamically allocated memory
-    ~Device();
-
-    // Initialization methods
-    void initialize();
-    void uninitialize();
-
-    // Data sending methods
-    void sendData(String type, String name, String component, int status);
-    void sendData(String type, String name, String component, String status);
-    void sendData(String type, String name, String component, int status, JsonArray dataArray);
-
-    // Connection and command methods
-    bool connectWiFi(const char* ssid, const char* password);
-    bool sendDeviceConnect();
-    void checkForCommands();
-    bool getConnectionStatus() const;
-
-    // Method to access pending commands
-    std::vector<Command>& getPendingCommands();
-
+    DeviceESP32(char* devId);
     
+    // Destructor
+    virtual ~DeviceESP32();
+    
+    // Initialization methods
+    virtual void initialize() override;
+    virtual void uninitialize() override;
+    
+    // Data sending methods
+    virtual bool sendData(String type, String name, String component, int status) override;
+    virtual bool sendData(String type, String name, String component, String status) override;
+    virtual bool sendData(String type, String name, String component, int status, JsonArray dataArray) override;
+    
+    // Connection and command methods
+    virtual bool connectWiFi(const char* ssid, const char* password) override;
+    virtual bool sendDeviceConnect() override;
+    virtual void checkForCommands() override;
+    virtual bool getConnectionStatus() const override;
+    
+    // Method to access pending commands
+    virtual std::vector<Command>& getPendingCommands() override;
 };
 
-#endif // DEVICE_ESP_H
+#endif // DEVICE_ESP32_H

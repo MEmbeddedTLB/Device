@@ -1,26 +1,30 @@
-#include "device_esp.h"
+// FILE: src/device_esp32.cpp
+#include "device_esp32.h"
 
 // Constructor
-Device::Device(char* devId) 
+DeviceESP32::DeviceESP32(char* devId) 
     : doc(1024) {
-  deviceId = devId;
-  server_url = "https://devica.membeddedtechlab.com";
-  connect_endpoint = server_url+ "/api/device-connect";
-  commands_endpoint = server_url + "/api/device-commands/" + deviceId;
-  data_endpoint = server_url + "/api/device-data";
+    deviceId = devId;
+    server_url = "https://devica.membeddedtechlab.com";
+    connect_endpoint = server_url + "/api/device-connect";
+    commands_endpoint = server_url + "/api/device-commands/" + deviceId;
+    data_endpoint = server_url + "/api/device-data";
 }
 
-// Destructor to free dynamically allocated memory
+// Destructor
+DeviceESP32::~DeviceESP32() {
+    // Ensure HTTP client is properly closed
+    httpClient.end();
+}
 
-
-void Device::initialize() {
+void DeviceESP32::initialize() {
     if (WiFi.status() != WL_CONNECTED) return;
     
     httpClient.begin(data_endpoint);
     httpClient.addHeader("Content-Type", "application/json");
 }
 
-void Device::sendData(String type, String name, String component, int status) {
+bool DeviceESP32::sendData(String type, String name, String component, int status) {
     doc.clear();
     doc["type"] = type;
     doc["deviceId"] = deviceId;
@@ -32,11 +36,31 @@ void Device::sendData(String type, String name, String component, int status) {
     int httpResponseCode = httpClient.POST(output);
     
     if (httpResponseCode <= 0) {
-        Serial.printf("Error sending data for %s: %d\n", name, httpResponseCode);
+        Serial.printf("Error sending data for %s: %d\n", name.c_str(), httpResponseCode);
+        return false;
     }
+    return true;
 }
 
-void Device::sendData(String type, String name, String component, int status, JsonArray dataArray) {
+bool DeviceESP32::sendData(String type, String name, String component, String status) {
+    doc.clear();
+    doc["type"] = type;
+    doc["deviceId"] = deviceId;
+    doc["name"] = name;
+    doc["component"] = component;
+    doc["status"] = status;
+    
+    serializeJson(doc, output);
+    int httpResponseCode = httpClient.POST(output);
+    
+    if (httpResponseCode <= 0) {
+        Serial.printf("Error sending data for %s: %d\n", name.c_str(), httpResponseCode);
+        return false;
+    }
+    return true;
+}
+
+bool DeviceESP32::sendData(String type, String name, String component, int status, JsonArray dataArray) {
     doc.clear();
     doc["type"] = type;
     doc["deviceId"] = deviceId;
@@ -49,31 +73,17 @@ void Device::sendData(String type, String name, String component, int status, Js
     int httpResponseCode = httpClient.POST(output);
     
     if (httpResponseCode <= 0) {
-        Serial.printf("Error sending data for %s: %d\n", name, httpResponseCode);
+        Serial.printf("Error sending data for %s: %d\n", name.c_str(), httpResponseCode);
+        return false;
     }
+    return true;
 }
 
-void Device::sendData(String type, String name, String component, String status) {
-    doc.clear();
-    doc["type"] = type;
-    doc["deviceId"] = deviceId;
-    doc["name"] = name;
-    doc["component"] = component;
-    doc["status"] = status;
-    
-    serializeJson(doc, output);
-    int httpResponseCode = httpClient.POST(output);
-    
-    if (httpResponseCode <= 0) {
-        Serial.printf("Error sending data for %s: %d\n", name, httpResponseCode);
-    }
-}
-
-void Device::uninitialize() {
+void DeviceESP32::uninitialize() {
     httpClient.end();
 }
 
-bool Device::connectWiFi(const char* ssid, const char* password) {
+bool DeviceESP32::connectWiFi(const char* ssid, const char* password) {
     WiFi.begin(ssid, password);
     Serial.print("Connecting to WiFi");
     
@@ -95,21 +105,21 @@ bool Device::connectWiFi(const char* ssid, const char* password) {
     }
 }
 
-bool Device::sendDeviceConnect() {
+bool DeviceESP32::sendDeviceConnect() {
     if (WiFi.status() == WL_CONNECTED && deviceId != nullptr) {
         // Prepare the JSON payload
         StaticJsonDocument<128> doc; // Smaller document size is sufficient
         doc["type"] = "deviceConnect";
         doc["deviceId"] = deviceId;
         
-        String output;
-        serializeJson(doc, output);
+        String connectOutput;
+        serializeJson(doc, connectOutput);
 
         // Send HTTP POST request
         HTTPClient connectHttpClient;
         connectHttpClient.begin(connect_endpoint);
         connectHttpClient.addHeader("Content-Type", "application/json");
-        int httpResponseCode = connectHttpClient.POST(output);
+        int httpResponseCode = connectHttpClient.POST(connectOutput);
         
         if (httpResponseCode > 0) {
             Serial.print("Device connect HTTP Response code: ");
@@ -127,22 +137,17 @@ bool Device::sendDeviceConnect() {
     return false;
 }
 
-void Device::checkForCommands() {
+void DeviceESP32::checkForCommands() {
     if (WiFi.status() == WL_CONNECTED && deviceId != nullptr) {
     
         // Recreate the HTTPClient to ensure a fresh connection
-        HTTPClient httpClient;
-        httpClient.begin(commands_endpoint);
-        // Serial.println(commands_endpoint);
+        HTTPClient commandHttpClient;
+        commandHttpClient.begin(commands_endpoint);
         
-        int httpResponseCode = httpClient.GET();
-        
-        // Serial.print("Command Check Response Code: ");
-        // Serial.println(httpResponseCode);
+        int httpResponseCode = commandHttpClient.GET();
         
         if (httpResponseCode > 0) {
-            String payload = httpClient.getString();
-            // Serial.println("Payload received: " + payload);
+            String payload = commandHttpClient.getString();
             
             StaticJsonDocument<512> doc;
             DeserializationError error = deserializeJson(doc, payload);
@@ -167,32 +172,21 @@ void Device::checkForCommands() {
                         Serial.println("Received command: " + newCommand.name + 
                                      ", Status: " + String(newCommand.status));
                     }
-                } else {
-                    Serial.println("No commands array found in response");
                 }
             } else {
                 Serial.print("JSON deserialization failed: ");
                 Serial.println(error.c_str());
             }
-        } else {
-            Serial.print("HTTP Error code: ");
-            Serial.println(httpResponseCode);
-            
-            // Print out more detailed error information
-            String errorMessage = httpClient.errorToString(httpResponseCode);
-            Serial.println("Error details: " + errorMessage);
         }
         
-        httpClient.end();
-    } else {
-        Serial.println("WiFi not connected or deviceId is null during command check");
+        commandHttpClient.end();
     }
 }
 
-bool Device::getConnectionStatus() const {
+bool DeviceESP32::getConnectionStatus() const {
     return isConnected;
 }
 
-std::vector<Command>& Device::getPendingCommands() {
+std::vector<Command>& DeviceESP32::getPendingCommands() {
     return pendingCommands;
 }

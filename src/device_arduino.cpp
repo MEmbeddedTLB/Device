@@ -1,22 +1,25 @@
 #include "device_arduino.h"
 
 // Constructor
-Device::Device(char* devId) {
+DeviceArduino::DeviceArduino(char* devId) 
+    : doc(1024) {
     deviceId = devId;
-    server_url = "https://devica.membeddedtechlab.com";
-    connect_endpoint = server_url + "/api/device-connect";
-    commands_endpoint = server_url + "/api/device-commands/" + deviceId;
-    data_endpoint = server_url + "/api/device-data";
+    server_url = "devica.membeddedtechlab.com";  // Domain without protocol
+    connect_endpoint = "/api/device-connect";
+    commands_endpoint = "/api/device-commands/";
+    data_endpoint = "/api/device-data";
 }
 
-// Destructor (can be empty for now)
-Device::~Device() {}
-
-void Device::initialize() {
-    // Optional: Any initialization logic
+// Destructor
+DeviceArduino::~DeviceArduino() {
+    sslClient.stop();
 }
 
-bool Device::sendData(String type, String name, String component, int status) {
+void DeviceArduino::initialize() {
+    // Nothing specific to initialize for the Arduino client
+}
+
+bool DeviceArduino::sendData(String type, String name, String component, int status) {
     if (WiFi.status() != WL_CONNECTED) return false;
 
     doc.clear();
@@ -26,37 +29,45 @@ bool Device::sendData(String type, String name, String component, int status) {
     doc["component"] = component;
     doc["status"] = status;
 
-    // Serialize JSON to output buffer
-    serializeJson(doc, output);
+    String jsonStr;
+    serializeJson(doc, jsonStr);
 
-    // Connect and send data
-    if (client.connect(server_url.c_str(), 8000)) {
-        client.println("POST " + data_endpoint + " HTTP/1.1");
-        client.println("Host: " + server_url);
-        client.println("Content-Type: application/json");
-        client.println("Connection: close");
-        client.print("Content-Length: ");
-        client.println(measureJsonPretty(doc));
-        client.println();
-        client.println(output);
+    // Connect and send data using SSL
+    if (sslClient.connect(server_url.c_str(), 443)) {
+        sslClient.print("POST ");
+        sslClient.print(data_endpoint);
+        sslClient.println(" HTTP/1.1");
+        sslClient.print("Host: ");
+        sslClient.println(server_url);
+        sslClient.println("Content-Type: application/json");
+        sslClient.println("Connection: close");
+        sslClient.print("Content-Length: ");
+        sslClient.println(jsonStr.length());
+        sslClient.println();
+        sslClient.println(jsonStr);
 
         // Wait for response
         unsigned long timeout = millis();
-        while (client.available() == 0) {
+        while (sslClient.available() == 0) {
             if (millis() - timeout > 5000) {
-                client.stop();
+                sslClient.stop();
                 Serial.println("Client Timeout!");
                 return false;
             }
         }
 
-        client.stop();
+        // Read and discard response
+        while (sslClient.available()) {
+            sslClient.read();
+        }
+
+        sslClient.stop();
         return true;
     }
     return false;
 }
 
-bool Device::sendData(String type, String name, String component, String status) {
+bool DeviceArduino::sendData(String type, String name, String component, String status) {
     if (WiFi.status() != WL_CONNECTED) return false;
 
     doc.clear();
@@ -66,35 +77,43 @@ bool Device::sendData(String type, String name, String component, String status)
     doc["component"] = component;
     doc["status"] = status;
 
-    serializeJson(doc, output);
+    String jsonStr;
+    serializeJson(doc, jsonStr);
 
-    // Similar connection and sending logic as previous method
-    if (client.connect(server_url.c_str(), 8000)) {
-        client.println("POST " + data_endpoint + " HTTP/1.1");
-        client.println("Host: " + server_url);
-        client.println("Content-Type: application/json");
-        client.println("Connection: close");
-        client.print("Content-Length: ");
-        client.println(measureJsonPretty(doc));
-        client.println();
-        client.println(output);
+    if (sslClient.connect(server_url.c_str(), 443)) {
+        sslClient.print("POST ");
+        sslClient.print(data_endpoint);
+        sslClient.println(" HTTP/1.1");
+        sslClient.print("Host: ");
+        sslClient.println(server_url);
+        sslClient.println("Content-Type: application/json");
+        sslClient.println("Connection: close");
+        sslClient.print("Content-Length: ");
+        sslClient.println(jsonStr.length());
+        sslClient.println();
+        sslClient.println(jsonStr);
 
         unsigned long timeout = millis();
-        while (client.available() == 0) {
+        while (sslClient.available() == 0) {
             if (millis() - timeout > 5000) {
-                client.stop();
+                sslClient.stop();
                 Serial.println("Client Timeout!");
                 return false;
             }
         }
 
-        client.stop();
+        // Read and discard response
+        while (sslClient.available()) {
+            sslClient.read();
+        }
+
+        sslClient.stop();
         return true;
     }
     return false;
 }
 
-bool Device::sendData(String type, String name, String component, int status, JsonArray dataArray) {
+bool DeviceArduino::sendData(String type, String name, String component, int status, JsonArray dataArray) {
     if (WiFi.status() != WL_CONNECTED) return false;
 
     doc.clear();
@@ -105,42 +124,50 @@ bool Device::sendData(String type, String name, String component, int status, Js
     doc["status"] = status;
     doc["data"] = dataArray;
 
-    serializeJson(doc, output);
+    String jsonStr;
+    serializeJson(doc, jsonStr);
 
-    // Similar connection and sending logic as previous methods
-    if (client.connect(server_url.c_str(), 8000)) {
-        client.println("POST " + data_endpoint + " HTTP/1.1");
-        client.println("Host: " + server_url);
-        client.println("Content-Type: application/json");
-        client.println("Connection: close");
-        client.print("Content-Length: ");
-        client.println(measureJsonPretty(doc));
-        client.println();
-        client.println(output);
+    if (sslClient.connect(server_url.c_str(), 443)) {
+        sslClient.print("POST ");
+        sslClient.print(data_endpoint);
+        sslClient.println(" HTTP/1.1");
+        sslClient.print("Host: ");
+        sslClient.println(server_url);
+        sslClient.println("Content-Type: application/json");
+        sslClient.println("Connection: close");
+        sslClient.print("Content-Length: ");
+        sslClient.println(jsonStr.length());
+        sslClient.println();
+        sslClient.println(jsonStr);
 
         unsigned long timeout = millis();
-        while (client.available() == 0) {
+        while (sslClient.available() == 0) {
             if (millis() - timeout > 5000) {
-                client.stop();
+                sslClient.stop();
                 Serial.println("Client Timeout!");
                 return false;
             }
         }
 
-        client.stop();
+        // Read and discard response
+        while (sslClient.available()) {
+            sslClient.read();
+        }
+
+        sslClient.stop();
         return true;
     }
     return false;
 }
 
-bool Device::connectWiFi(const char* ssid, const char* password) {
+bool DeviceArduino::connectWiFi(const char* ssid, const char* password) {
     // Initialize WiFi
     WiFi.begin(ssid, password);
     Serial.print("Connecting to WiFi");
 
     // Wait for connection with timeout
     int timeout = 0;
-    while (WiFi.status() != WL_CONNECTED && timeout < 20) {
+    while (WiFi.status() != WL_CONNECTED && timeout < 20) { // 10 second timeout
         delay(500);
         Serial.print(".");
         timeout++;
@@ -152,80 +179,108 @@ bool Device::connectWiFi(const char* ssid, const char* password) {
         Serial.println(WiFi.localIP());
         return sendDeviceConnect();
     } else {
-        Serial.println("\nFailed to connect to WiFi");
+        Serial.println("\nFailed to connect to WiFi. Will retry in next loop.");
         return false;
     }
 }
 
-bool Device::sendDeviceConnect() {
+bool DeviceArduino::sendDeviceConnect() {
     if (WiFi.status() == WL_CONNECTED && deviceId != nullptr) {
         doc.clear();
         doc["type"] = "deviceConnect";
         doc["deviceId"] = deviceId;
 
-        serializeJson(doc, output);
+        String jsonStr;
+        serializeJson(doc, jsonStr);
 
-        // Connect and send device connection
-        if (client.connect(server_url.c_str(), 8000)) {
-            client.println("POST " + connect_endpoint + " HTTP/1.1");
-            client.println("Host: " + server_url);
-            client.println("Content-Type: application/json");
-            client.println("Connection: close");
-            client.print("Content-Length: ");
-            client.println(measureJsonPretty(doc));
-            client.println();
-            client.println(output);
+        if (sslClient.connect(server_url.c_str(), 443)) {
+            sslClient.print("POST ");
+            sslClient.print(connect_endpoint);
+            sslClient.println(" HTTP/1.1");
+            sslClient.print("Host: ");
+            sslClient.println(server_url);
+            sslClient.println("Content-Type: application/json");
+            sslClient.println("Connection: close");
+            sslClient.print("Content-Length: ");
+            sslClient.println(jsonStr.length());
+            sslClient.println();
+            sslClient.println(jsonStr);
 
-            // Wait for response
             unsigned long timeout = millis();
-            while (client.available() == 0) {
+            while (sslClient.available() == 0) {
                 if (millis() - timeout > 5000) {
-                    client.stop();
+                    sslClient.stop();
                     Serial.println("Device Connect Timeout!");
                     isConnected = false;
                     return false;
                 }
             }
 
-            client.stop();
-            isConnected = true;
-            return true;
+            // Process the response
+            String response = "";
+            while (sslClient.available()) {
+                char c = sslClient.read();
+                response += c;
+            }
+            
+            sslClient.stop();
+            
+            // Check if response contains success code
+            if (response.indexOf("200 OK") > 0) {
+                isConnected = true;
+                return true;
+            } else {
+                isConnected = false;
+                return false;
+            }
         }
     }
     return false;
 }
 
-void Device::checkForCommands() {
+void DeviceArduino::checkForCommands() {
     if (WiFi.status() == WL_CONNECTED && deviceId != nullptr) {
-        // Connect and send GET request
-        if (client.connect(server_url.c_str(), 8000)) {
-            client.println("GET " + commands_endpoint + " HTTP/1.1");
-            client.println("Host: " + server_url);
-            client.println("Connection: close");
-            client.println();
+        String fullEndpoint = commands_endpoint + deviceId;
+        
+        if (sslClient.connect(server_url.c_str(), 443)) {
+            sslClient.print("GET ");
+            sslClient.print(fullEndpoint);
+            sslClient.println(" HTTP/1.1");
+            sslClient.print("Host: ");
+            sslClient.println(server_url);
+            sslClient.println("Connection: close");
+            sslClient.println();
 
             // Wait for response
             unsigned long timeout = millis();
-            while (client.available() == 0) {
+            while (sslClient.available() == 0) {
                 if (millis() - timeout > 5000) {
-                    client.stop();
+                    sslClient.stop();
                     Serial.println("Command Check Timeout!");
                     return;
                 }
             }
 
             // Skip HTTP headers
-            while (client.available()) {
-                String line = client.readStringUntil('\n');
+            String line = "";
+            while (sslClient.available()) {
+                line = sslClient.readStringUntil('\n');
                 if (line == "\r") break;
             }
 
-            // Read JSON payload
-            String payload = client.readString();
-            client.stop();
+            // Read payload
+            String payload = "";
+            while (sslClient.available()) {
+                char c = sslClient.read();
+                payload += c;
+            }
+            
+            sslClient.stop();
 
             // Parse JSON
+            doc.clear();
             DeserializationError error = deserializeJson(doc, payload);
+            
             if (!error) {
                 pendingCommands.clear();
 
@@ -243,22 +298,21 @@ void Device::checkForCommands() {
                     }
                 }
             } else {
-                Serial.print("JSON parsing failed: ");
+                Serial.print("JSON deserialization failed: ");
                 Serial.println(error.c_str());
             }
         }
     }
 }
 
-void Device::uninitialize() {
-    // Optional cleanup
-    WiFi.disconnect();
+void DeviceArduino::uninitialize() {
+    sslClient.stop();
 }
 
-bool Device::getConnectionStatus() const {
+bool DeviceArduino::getConnectionStatus() const {
     return isConnected;
 }
 
-std::vector<Command>& Device::getPendingCommands() {
+std::vector<Command>& DeviceArduino::getPendingCommands() {
     return pendingCommands;
 }
